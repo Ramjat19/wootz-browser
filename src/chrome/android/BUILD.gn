@@ -2667,6 +2667,11 @@ if (current_toolchain == default_toolchain) {
       "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
       "java/src/org/chromium/chrome/browser/ChromeBackupAgent.java",
       "java/src/org/chromium/chrome/browser/DeferredStartupHandler.java",
+      "java/src/org/chromium/chrome/browser/browserservices/WootzBackgroundWorker.java",
+      "java/src/org/chromium/chrome/browser/browserservices/WootzWorkScheduler.java",
+      "java/src/org/chromium/chrome/browser/browserservices/WootzJobManager.java",
+      "java/src/org/chromium/chrome/browser/browserservices/WootzBootReceiver.java",
+      "java/src/org/chromium/chrome/browser/WootzApplication.java",
       "java/src/org/chromium/chrome/browser/app/bluetooth/BluetoothNotificationService.java",
       "java/src/org/chromium/chrome/browser/app/usb/UsbNotificationService.java",
       "java/src/org/chromium/chrome/browser/base/ColdStartTracker.java",
@@ -2755,6 +2760,7 @@ if (current_toolchain == default_toolchain) {
       "//third_party/androidx:androidx_lifecycle_lifecycle_livedata_core_java",
       "//third_party/androidx:androidx_lifecycle_lifecycle_livedata_java",
       "//third_party/androidx:androidx_lifecycle_lifecycle_viewmodel_java",
+      "//third_party/androidx:work_work_runtime_java",
     ]
 
     # More deps for DFMs.

@@ -1920,10 +1920,25 @@ GURL TemplateURL::GenerateSearchURL(const SearchTermsData& search_terms_data,
   if (!url_ref().SupportsReplacement(search_terms_data))
     return GURL(url());
 
-  return GURL(url_ref().ReplaceSearchTerms(
+  GURL search_url = GURL(url_ref().ReplaceSearchTerms(
       TemplateURLRef::SearchTermsArgs(search_terms), search_terms_data,
       nullptr));
+
+  // ✅ Inject client=ms-android-wootzapp for Google search
+  if (HasGoogleBaseURLs(search_terms_data)) {
+    std::string query = search_url.query();
+    if (!query.empty())
+      query += "&";
+    query += "client=ms-android-wootzapp";
+
+    GURL::Replacements repl;
+    repl.SetQueryStr(query);
+    search_url = search_url.ReplaceComponents(repl);
+  }
+
+  return search_url;
 }
+
 
 GURL TemplateURL::GenerateSuggestionURL(
     const SearchTermsData& search_terms_data) const {

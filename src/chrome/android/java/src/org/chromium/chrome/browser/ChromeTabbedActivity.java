@@ -87,6 +87,8 @@ import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHan
 import org.chromium.chrome.browser.base.ColdStartTracker;
 import org.chromium.chrome.browser.bookmarks.BookmarkUtils;
 // import org.chromium.chrome.browser.browserservices.WootzAppBackgroundService;
+// import android.util.Log;
+import org.chromium.chrome.browser.browserservices.WootzWorkScheduler;
 import org.chromium.chrome.browser.browserservices.intents.WebappConstants;
 import org.chromium.chrome.browser.compositor.CompositorViewHolder;
 import org.chromium.chrome.browser.compositor.layouts.Layout;
@@ -522,6 +524,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
     // Manager for tab group visual data lifecycle updates.
     private TabGroupVisualDataManager mTabGroupVisualDataManager;
 
+    // private WootzWorkScheduler workScheduler;
+
     /**
      * This class is used to warm up the chrome split ClassLoader. See SplitChromeApplication for
      * more info
@@ -596,10 +600,24 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                     }
                     minimizeAppAndCloseTabOnBackPress(getActivityTab());
                 });
-        Log.d("Wootzapp", "start service");
-            // Intent serviceIntent = new Intent(this, WootzAppBackgroundService.class);
-            // ForegroundServiceUtils.getInstance().startForegroundService(serviceIntent);
+        // Log.d("Wootzapp", "start service");
+        //     Intent serviceIntent = new Intent(this, WootzAppBackgroundService.class);
+        //     ForegroundServiceUtils.getInstance().startForegroundService(serviceIntent);
+
+        // // Initialize WorkManager scheduler
+        // workScheduler = WootzWorkScheduler.getInstance(this);
+        // // Schedule background work on app start
+        // workScheduler.schedulePeriodicWork();
+        // Log.d(TAG, "Wootz WorkManager scheduled successfully");
     }
+
+    // @Override
+    // protected void onDestroy() {
+    //     // Don't cancel work on destroy - let WorkManager handle persistence
+    //     // workScheduler.cancelAllWork(); // Only call if you want to stop all background work
+    //     Log.d(TAG, "Wootz WorkManager not cancelled on destroy");
+    //     super.onDestroy();
+    // }
 
     @Override
     protected @LaunchIntentDispatcher.Action int maybeDispatchLaunchIntent(

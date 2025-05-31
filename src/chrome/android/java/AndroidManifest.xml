@@ -946,6 +946,31 @@ by a child template that "extends" this file.
             </intent-filter>
         </service> -->
 
+        <!-- Boot receiver to restart work after device reboot -->
+        <receiver
+            android:name=".browserservices.WootzBootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+
+        <!-- WorkManager initialization -->
+        <!-- <provider 
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider> -->
+
         <!-- Components for Trusted Web Activities -->
         <receiver android:name="org.chromium.chrome.browser.browserservices.InstalledWebappBroadcastReceiver"
             android:exported="true">
@@ -1546,4 +1571,3 @@ by a child template that "extends" this file.
     {% block extra_root_definitions %}
     {% endblock %}
 </manifest>
-

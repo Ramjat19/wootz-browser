@@ -69,7 +69,6 @@
 #include "chrome/renderer/worker_content_settings_client.h"
 #include "chrome/renderer/wootz_render_thread_observer.h"
 #include "chrome/services/speech/buildflags/buildflags.h"
-#include "components/action_url/content/renderer/action_url_agent.h"
 #include "components/autofill/content/renderer/autofill_agent.h"
 #include "components/autofill/content/renderer/password_autofill_agent.h"
 #include "components/autofill/content/renderer/password_generation_agent.h"
@@ -597,7 +596,6 @@ void ChromeContentRendererClient::ExposeInterfacesToBrowser(
 
 void ChromeContentRendererClient::RenderFrameCreated(
     content::RenderFrame* render_frame) {
-  LOG(INFO) << "AMIT RenderFrameCreated";
   ChromeRenderFrameObserver* render_frame_observer =
       new ChromeRenderFrameObserver(render_frame, web_cache_impl_.get());
   service_manager::BinderRegistry* registry = render_frame_observer->registry();
@@ -653,13 +651,10 @@ void ChromeContentRendererClient::RenderFrameCreated(
 #endif
 
 #if BUILDFLAG(IS_ANDROID)
-LOG(INFO) << "AMIT SandboxStatusExtension::Create";
   SandboxStatusExtension::Create(render_frame);
 #endif
 
-  LOG(INFO) << "AMIT TrustedVaultEncryptionKeysExtension::Create";
   TrustedVaultEncryptionKeysExtension::Create(render_frame);
-  LOG(INFO) << "AMIT GoogleAccountsPrivateApiExtension::Create";
   GoogleAccountsPrivateApiExtension::Create(render_frame);
 
   if (render_frame->IsMainFrame())
@@ -719,10 +714,6 @@ LOG(INFO) << "AMIT SandboxStatusExtension::Create";
          UsesKeyboardAccessoryForSuggestions(BUILDFLAG(IS_ANDROID))},
         std::move(password_autofill_agent),
         std::move(password_generation_agent), associated_interfaces);
-
-    LOG(INFO) << "AMIT agent created in chrome_content_renderer_client.cc";
-
-    new action_url::ActionUrlAgent(render_frame, associated_interfaces);
 
 #if BUILDFLAG(IS_ANDROID)
     if (render_frame->IsMainFrame() &&

@@ -32,6 +32,9 @@
 #include "extensions/browser/extension_system.h"
 #include "extensions/common/extension.h"
 
+
+#include "base/logging.h"
+
 namespace {
 
 void CreateAndAddExtensionStoreHTMLSource(Profile* profile) {
@@ -114,10 +117,12 @@ void ExtensionStoreMessageHandler::CleanupResources() {
 }
 
 void ExtensionStoreMessageHandler::OnJavascriptDisallowed() {
+  LOG(INFO) << "OnJavascriptDisallowed called, invalidating weak pointers";
   weak_factory_.InvalidateWeakPtrs();
 }
 
 void ExtensionStoreMessageHandler::RegisterMessages() {
+  LOG(INFO) << "RegisterMessages: Registering message callbacks";
   // Register the message callback for fetching extensions
   web_ui_->RegisterMessageCallback(
       "fetchExtensions",
@@ -135,10 +140,13 @@ void ExtensionStoreMessageHandler::RegisterMessages() {
       "fetchInstalledExtensions",
       base::BindRepeating(&ExtensionStoreMessageHandler::HandleFetchInstalledExtensions,
                          base::Unretained(this)));
+  LOG(INFO) << "RegisterMessages: Completed";
 }
 
 void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List& args) {
+  LOG(INFO) << "HandleFetchExtensions called";
   if (is_destroyed_) {
+    LOG(WARNING) << "HandleFetchExtensions: Handler destroyed, aborting";
     return;
   }
   
@@ -148,6 +156,7 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
   GURL fetch_url(url);
   
   if (!fetch_url.is_valid()) {
+    LOG(ERROR) << "HandleFetchExtensions: Invalid URL";
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("Invalid URL"));
     return;
@@ -155,11 +164,14 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
   
   // Verify URL scheme
   if (!fetch_url.SchemeIs("https")) {
+    LOG(ERROR) << "HandleFetchExtensions: Invalid URL scheme";
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("Invalid URL scheme"));
     return;
   }
   
+  LOG(INFO) << "fetchExtensions called with URL: " << fetch_url.spec();
+
   resource_request->url = fetch_url;
   
   resource_request->method = "GET";
@@ -168,9 +180,8 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
   // Add additional headers to help with debugging
   resource_request->headers.SetHeader("Accept", "application/json");
   resource_request->headers.SetHeader("User-Agent", "Chrome Extension Store");
-
-  // To bypass the cache loading
-  // Note: LOAD_BYPASS_CACHE is used to ensure we always get the latest data
+  
+  // Add this line to force fresh fetch from network
   resource_request->load_flags = net::LOAD_BYPASS_CACHE;
   
   net::NetworkTrafficAnnotationTag traffic_annotation = net::DefineNetworkTrafficAnnotation(
@@ -198,19 +209,20 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
   // Add response started callback
   loader->SetOnResponseStartedCallback(base::BindOnce(
       [](const GURL& url, const network::mojom::URLResponseHead& response_head) {
-        // Response started callback
+        LOG(INFO) << "Response started for URL: " << url.spec();
       }));
 
   // Add download progress callback
   loader->SetOnDownloadProgressCallback(base::BindRepeating(
       [](uint64_t current) {
-        // Download progress callback
+        LOG(INFO) << "Download progress: " << current << " bytes";
       }));
 
   content::BrowserContext* browser_context =
       web_ui_->GetWebContents()->GetBrowserContext();
   
   if (!browser_context) {
+    LOG(ERROR) << "HandleFetchExtensions: Browser context error";
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("Browser context error"));
     return;
@@ -220,6 +232,7 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
                                ->GetURLLoaderFactoryForBrowserProcess();
   
   if (!url_loader_factory) {
+    LOG(ERROR) << "HandleFetchExtensions: URL loader factory error";
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("URL loader factory error"));
     return;
@@ -228,15 +241,21 @@ void ExtensionStoreMessageHandler::HandleFetchExtensions(const base::Value::List
   // Save the loader as a class member to keep it alive
   extensions_loader_ = std::move(loader);
   
+  LOG(INFO) << "Starting download from: " << fetch_url.spec();
+
   extensions_loader_->DownloadToString(
       url_loader_factory.get(),
       base::BindOnce(&ExtensionStoreMessageHandler::OnFetchExtensionsComplete,
                      weak_factory_.GetWeakPtr()),
       1024 * 1024);  // 1MB max size
+
+  LOG(INFO) << "Download started for: " << fetch_url.spec();
 }
 
 void ExtensionStoreMessageHandler::OnFetchExtensionsComplete(std::unique_ptr<std::string> response_body) {
+  LOG(INFO) << "OnFetchExtensionsComplete called";
   if (!response_body) {
+    LOG(ERROR) << "OnFetchExtensionsComplete: No response body";
     // Notify frontend of error
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("Failed to fetch extensions"));
@@ -244,6 +263,7 @@ void ExtensionStoreMessageHandler::OnFetchExtensionsComplete(std::unique_ptr<std
   }
 
   if (response_body->empty()) {
+    LOG(ERROR) << "OnFetchExtensionsComplete: Empty response received";
     web_ui_->CallJavascriptFunctionUnsafe(
         "handleError", base::Value("Empty response received"));
     return;
@@ -252,21 +272,25 @@ void ExtensionStoreMessageHandler::OnFetchExtensionsComplete(std::unique_ptr<std
   // Parse the JSON response.
   absl::optional<base::Value> json = base::JSONReader::Read(*response_body);
   if (!json || !json->is_dict()) {
+    LOG(ERROR) << "OnFetchExtensionsComplete: Failed to parse JSON or not a dict";
     return;
   }
 
   const base::Value::Dict& root_dict = json->GetDict();
   const base::Value::List* extensions = root_dict.FindList("extensions");
   if (!extensions) {
+    LOG(ERROR) << "OnFetchExtensionsComplete: No 'extensions' list in JSON";
     return;
   }
   
   // Clear existing extensions data
   extensions_data_.clear();
+  LOG(INFO) << "OnFetchExtensionsComplete: Processing " << extensions->size() << " extensions";
 
   // Process each extension
   for (const base::Value& extension_value : *extensions) {
     if (!extension_value.is_dict()) {
+      LOG(WARNING) << "OnFetchExtensionsComplete: Skipping non-dict extension entry";
       continue;
     }
 
@@ -283,25 +307,30 @@ void ExtensionStoreMessageHandler::OnFetchExtensionsComplete(std::unique_ptr<std
     const std::string* icon_url = extension_dict.FindString("icon_url");
     
     if (!id || !name || !description || !version) {
+      LOG(WARNING) << "OnFetchExtensionsComplete: Missing required fields for an extension, skipping";
       continue;
     }
     
     // Store the extension data with the ID as key
     extensions_data_[*id] = std::move(extension_copy);
+    LOG(INFO) << "OnFetchExtensionsComplete: Sending extension to frontend: " << *id;
     
     // Send the extension data to the frontend immediately
     SendExtensionToFrontend(*id);
     
     // Fetch the icon if available
     if (icon_url && !icon_url->empty()) {
+      LOG(INFO) << "OnFetchExtensionsComplete: Fetching icon for extension: " << *id;
       FetchIcon(*icon_url, *id);
     }
   }
 }
 
 void ExtensionStoreMessageHandler::SendExtensionToFrontend(const std::string& extension_id) {
+  LOG(INFO) << "SendExtensionToFrontend called for extension_id: " << extension_id;
   auto it = extensions_data_.find(extension_id);
   if (it == extensions_data_.end()) {
+    LOG(ERROR) << "SendExtensionToFrontend: Extension not found in data for id: " << extension_id;
     return;
   }
   
@@ -311,9 +340,11 @@ void ExtensionStoreMessageHandler::SendExtensionToFrontend(const std::string& ex
   // Send the extension data to the frontend
   web_ui_->CallJavascriptFunctionUnsafe(
       "handleExtensionData", extension_value);
+  LOG(INFO) << "SendExtensionToFrontend: Data sent to frontend for id: " << extension_id;
 }
 
 void ExtensionStoreMessageHandler::FetchIcon(const std::string& icon_url, const std::string& extension_id) {
+  LOG(INFO) << "FetchIcon called for extension_id: " << extension_id << ", icon_url: " << icon_url;
   auto resource_request = std::make_unique<network::ResourceRequest>();
   resource_request->url = GURL(icon_url);
   resource_request->method = "GET";
@@ -345,6 +376,8 @@ void ExtensionStoreMessageHandler::FetchIcon(const std::string& icon_url, const 
   auto* loader_ptr = loader.get();
   icon_loaders_[loader_key] = std::move(loader);
   
+  LOG(INFO) << "FetchIcon: Starting icon download for extension_id: " << extension_id;
+
   loader_ptr->DownloadToString(
       browser_context->GetDefaultStoragePartition()
           ->GetURLLoaderFactoryForBrowserProcess()
@@ -360,19 +393,23 @@ void ExtensionStoreMessageHandler::OnFetchIconComplete(
     const std::string& extension_id,
     const std::string& loader_key,
     std::unique_ptr<std::string> response_body) {
+  LOG(INFO) << "OnFetchIconComplete called for extension_id: " << extension_id;
   // Remove the loader from the map since it's done
   auto it = icon_loaders_.find(loader_key);
   if (it != icon_loaders_.end()) {
     icon_loaders_.erase(it);
+    LOG(INFO) << "OnFetchIconComplete: Loader erased for key: " << loader_key;
   }
 
   if (!response_body) {
+    LOG(ERROR) << "OnFetchIconComplete: No response body for icon";
     return;
   }
 
   // Check if we have the extension data
   auto ext_it = extensions_data_.find(extension_id);
   if (ext_it == extensions_data_.end()) {
+    LOG(ERROR) << "OnFetchIconComplete: Extension data not found for id: " << extension_id;
     return;
   }
 
@@ -387,13 +424,16 @@ void ExtensionStoreMessageHandler::OnFetchIconComplete(
 
   // Update the extension data with the base64 icon
   ext_it->second.Set("icon_base64", base64_icon);
+  LOG(INFO) << "OnFetchIconComplete: Icon base64 set for extension_id: " << extension_id;
   
   // Send the updated extension to the frontend
   SendExtensionToFrontend(extension_id);
 }
 
 void ExtensionStoreMessageHandler::HandleFetchIcon(const base::Value::List& args) {
+  LOG(INFO) << "HandleFetchIcon called";
   if (args.size() < 1 || !args[0].is_string()) {
+    LOG(ERROR) << "HandleFetchIcon: Invalid arguments";
     return;
   }
 
@@ -404,6 +444,7 @@ void ExtensionStoreMessageHandler::HandleFetchIcon(const base::Value::List& args
   if (args.size() >= 2 && args[1].is_string()) {
     extension_id = args[1].GetString();
   } else {
+    LOG(ERROR) << "HandleFetchIcon: Extension ID missing or invalid";
     return;
   }
 
@@ -412,7 +453,9 @@ void ExtensionStoreMessageHandler::HandleFetchIcon(const base::Value::List& args
 }
 
 void ExtensionStoreMessageHandler::HandleFetchInstalledExtensions(const base::Value::List& args) {
+  LOG(INFO) << "HandleFetchInstalledExtensions called";
   if (is_destroyed_) {
+    LOG(WARNING) << "HandleFetchInstalledExtensions: Handler destroyed, aborting";
     return;
   }
   

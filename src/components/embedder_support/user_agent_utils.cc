@@ -312,6 +312,37 @@ std::string GetUserAgent(
 //   3. A randomized string containing GREASE characters to ensure proper
 //      header parsing, along with an arbitrarily low version to ensure proper
 //      version checking.
+
+
+// //-----Hardcoded code for testing purposes------------------
+// blink::UserAgentBrandList GenerateBrandVersionList(
+//     int seed,
+//     std::optional<std::string> brand,
+//     const std::string& version,
+//     std::optional<std::string> maybe_greasey_brand,
+//     std::optional<std::string> maybe_greasey_version,
+//     bool enable_updated_grease_by_policy,
+//     blink::UserAgentBrandVersionType output_version_type) {
+  
+//   // Force fixed ordering to match Chrome: "Chromium", "Google Chrome", "Not.A/Brand"
+//   blink::UserAgentBrandList brand_list;
+
+//   // Chromium brand
+//   brand_list.emplace_back(blink::UserAgentBrandVersion{"Chromium", version});
+
+//   // Google Chrome brand – needed for compatibility with Google services
+//   brand_list.emplace_back(blink::UserAgentBrandVersion{"Google Chrome", version});
+
+//   // Greased brand – always include this for spec compliance
+//   brand_list.emplace_back(blink::UserAgentBrandVersion{"Not.A/Brand", "99"});
+
+//   return brand_list;
+// }
+
+
+
+
+// -----old code for reference------------------
 blink::UserAgentBrandList GenerateBrandVersionList(
     int seed,
     std::optional<std::string> brand,
@@ -331,6 +362,42 @@ blink::UserAgentBrandList GenerateBrandVersionList(
   const std::vector<int> order = orders[permutation];
   DCHECK_EQ(6u, orders.size());
   DCHECK_EQ(3u, order.size());
+
+//   blink::UserAgentBrandVersion greasey_bv = GetGreasedUserAgentBrandVersion(
+//     order, seed, maybe_greasey_brand, maybe_greasey_version,
+//     enable_updated_grease_by_policy, output_version_type);
+// blink::UserAgentBrandVersion chromium_bv = {"Chromium", version};
+
+// // Always inject "Google Chrome" brand
+// blink::UserAgentBrandVersion google_chrome_bv = {"Google Chrome", version};
+
+// // Brand list initialization
+// blink::UserAgentBrandList greased_brand_version_list;
+
+// // Case 1: Custom brand is defined (e.g., for Google builds)
+// if (brand) {
+//   blink::UserAgentBrandVersion brand_bv = {brand.value(), version};
+
+//   // Use stable permutation order to shuffle
+//   greased_brand_version_list.resize(4);  // Now 4 brands
+//   greased_brand_version_list[order[0] % 4] = greasey_bv;
+//   greased_brand_version_list[order[1] % 4] = chromium_bv;
+//   greased_brand_version_list[order[2] % 4] = brand_bv;
+//   greased_brand_version_list[(order[2] + 1) % 4] = google_chrome_bv;
+// } else {
+//   // Non-Google build — still inject Google Chrome for compatibility
+//   greased_brand_version_list.resize(3);
+//   greased_brand_version_list[order[0] % 3] = greasey_bv;
+//   greased_brand_version_list[order[1] % 3] = chromium_bv;
+//   greased_brand_version_list[order[2] % 3] = google_chrome_bv;
+// }
+
+// return greased_brand_version_list;
+
+
+
+//----------Older code for reference------------------
+
 
   blink::UserAgentBrandVersion greasey_bv = GetGreasedUserAgentBrandVersion(
       order, seed, maybe_greasey_brand, maybe_greasey_version,
@@ -396,6 +463,17 @@ blink::UserAgentBrandVersion GetGreasedUserAgentBrandVersion(
     std::optional<std::string> maybe_greasey_version,
     bool enable_updated_grease_by_policy,
     blink::UserAgentBrandVersionType output_version_type) {
+
+  //     // Force Chrome's consistent format instead of randomized greasing
+  // std::string greasey_brand = "Not.A/Brand";
+  // std::string greasey_version = "99";
+  
+  // return GetProcessedGreasedBrandVersion(greasey_brand, greasey_version,
+  //                                        output_version_type);
+
+
+  //----old code for reference----------------
+
   std::string greasey_brand;
   std::string greasey_version;
   // The updated algorithm is enabled by default, but we maintain the ability

@@ -322,7 +322,6 @@ protected:
  ResponseAction Run() override;
 };
 
-
 class WootzGetBrowserInfoFunction : public ExtensionFunction {
  public:
   DECLARE_EXTENSION_FUNCTION("wootz.getBrowserInfo", WOOTZ_GET_BROWSER_INFO)
@@ -351,16 +350,6 @@ class WootzGenerateZKProofFunction : public ExtensionFunction {
   ResponseAction Run() override;
   
 };
-
-class WootzSetBlinksEnabledFunction : public ExtensionFunction {
- public:
-  WootzSetBlinksEnabledFunction() = default;
-  DECLARE_EXTENSION_FUNCTION("wootz.setBlinksEnabled", WOOTZ_SETBLINKSENABLED)
- protected:
-  ~WootzSetBlinksEnabledFunction() override = default;
-  ResponseAction Run() override;
-};
-
 
 }  // namespace extensions
 #endif  // CHROME_BROWSER_EXTENSIONS_API_WOOTZ_WOOTZ_API_H_
